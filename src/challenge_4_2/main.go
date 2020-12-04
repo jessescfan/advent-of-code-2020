@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -96,6 +98,16 @@ func valid(fieldMap map[string]string) bool {
 		//"cid",
 	}
 
+	eyeColors := map[string]string{
+		"amb": "amb",
+		"blu": "blu",
+		"brn": "brn",
+		"gry": "gry",
+		"grn": "grn",
+		"hzl": "hzl",
+		"oth": "oth",
+	}
+
 	//correct fields
 	for _, reqField := range requiredFields {
 		hasField := fieldMap[reqField]
@@ -104,5 +116,76 @@ func valid(fieldMap map[string]string) bool {
 		}
 	}
 
+	//validate byr
+	byr, err := strconv.Atoi(fieldMap["byr"])
+	if err != nil {
+		return false
+	}
+	if !between(byr, 1920, 2002) {
+		return false
+	}
+
+	//validate iyr
+	iyr, err := strconv.Atoi(fieldMap["iyr"])
+	if err != nil {
+		return false
+	}
+	if !between(iyr, 2010, 2020) {
+		return false
+	}
+
+	//validate eyr
+	eyr, err := strconv.Atoi(fieldMap["eyr"])
+	if err != nil {
+		return false
+	}
+	if !between(eyr, 2020, 2030) {
+		return false
+	}
+
+	//validate hgt
+	hgt := fieldMap["hgt"]
+	isCm := strings.Contains(hgt, "cm")
+	isIn := strings.Contains(hgt, "in")
+	if !isCm && !isIn {
+		return false
+	}
+	convertedHgt, _ := strconv.Atoi(hgt[0:len(hgt) - 2])
+	if isCm {
+		if !between(convertedHgt, 150, 193) {
+			return false
+		}
+	}
+	if isIn {
+		if !between(convertedHgt, 59, 76) {
+			return false
+		}
+	}
+
+	//validate hcl
+	rHcl := regexp.MustCompile("#[a-f0-9]{6}")
+	if !rHcl.MatchString(fieldMap["hcl"]) {
+		return false
+	}
+
+	//validate ecl
+	eyeColor := eyeColors[fieldMap["ecl"]]
+	if eyeColor == "" {
+		return false
+	}
+
+	//validate pid
+	rPid := regexp.MustCompile("\\d{9}")
+	if !rPid.MatchString(fieldMap["pid"]) {
+		return false
+	}
+	if len(fieldMap["pid"]) > 9 {
+		return false
+	}
+
 	return true
+}
+
+func between(number int, min int, max int) bool {
+	return number >= min && number <= max
 }
